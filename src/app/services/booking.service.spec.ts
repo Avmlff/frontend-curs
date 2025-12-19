@@ -31,7 +31,6 @@ describe('BookingService', () => {
   });
 
   it('should detect time conflicts', async () => {
-    // Добавляем первое бронирование
     service.addBooking({
       resourceId: 1,
       start: new Date('2024-01-01T10:00:00'),
@@ -42,7 +41,7 @@ describe('BookingService', () => {
     const isAvailable = await new Promise<boolean>(resolve => {
       service.checkAvailability(
         1,
-        new Date('2024-01-01T11:00:00'), // Пересекается
+        new Date('2024-01-01T11:00:00'),
         new Date('2024-01-01T13:00:00')
       ).subscribe(resolve);
     });
@@ -61,7 +60,7 @@ describe('BookingService', () => {
     const isAvailable = await new Promise<boolean>(resolve => {
       service.checkAvailability(
         1,
-        new Date('2024-01-01T14:00:00'), // Не пересекается
+        new Date('2024-01-01T14:00:00'),
         new Date('2024-01-01T15:00:00')
       ).subscribe(resolve);
     });
@@ -79,7 +78,7 @@ describe('BookingService', () => {
 
     const isAvailable = await new Promise<boolean>(resolve => {
       service.checkAvailability(
-        2, // Другой ресурс
+        2,
         new Date('2024-01-01T11:00:00'),
         new Date('2024-01-01T13:00:00')
       ).subscribe(resolve);

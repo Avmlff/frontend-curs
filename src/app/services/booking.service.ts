@@ -6,8 +6,20 @@ import { delay } from 'rxjs/operators';
 @Injectable({ providedIn: 'root' })
 export class BookingService {
   private bookings: Booking[] = [
-    { id: 1, resourceId: 1, start: new Date(), end: new Date(Date.now() + 3600000), title: 'Планерка' },
-    { id: 2, resourceId: 2, start: new Date(Date.now() + 7200000), end: new Date(Date.now() + 10800000), title: 'Совещание' }
+    {
+      id: 1,
+      resourceId: 1,
+      start: new Date(new Date().setHours(10, 0, 0, 0)),
+      end: new Date(new Date().setHours(11, 0, 0, 0)),
+      title: 'Планерка'
+    },
+    {
+      id: 2,
+      resourceId: 2,
+      start: new Date(new Date().setHours(14, 0, 0, 0)),
+      end: new Date(new Date().setHours(15, 30, 0, 0)),
+      title: 'Совещание'
+    }
   ];
 
   addBooking(booking: Omit<Booking, 'id'>) {
@@ -18,7 +30,7 @@ export class BookingService {
     this.bookings.push(newBooking);
   }
 
-  getBookings() {
+  getBookings(): Booking[] {
     return this.bookings;
   }
 

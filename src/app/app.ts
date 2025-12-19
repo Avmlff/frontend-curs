@@ -7,6 +7,8 @@ import { MatCardModule } from '@angular/material/card';
 import { BookingFormComponent } from './components/booking-form.component';
 import { CalendarComponent } from './components/calendar.component';
 import { ResourceManagementComponent } from './components/resource-management.component';
+import { BookingService } from './services/booking.service';
+import { ResourceService } from './services/resource.service';
 
 @Component({
   selector: 'app-root',
@@ -27,10 +29,10 @@ import { ResourceManagementComponent } from './components/resource-management.co
         <div class="header-content">
           <div class="logo-section">
             <mat-icon class="logo-icon">calendar_today</mat-icon>
-            <h1 class="app-title">Meeting Planner Pro</h1>
+            <h1 class="app-title">Планировщик встреч</h1>
           </div>
           <div class="header-subtitle">
-            Умное планирование встреч и ресурсов
+            Умное и легкое планирование встреч и ресурсов
           </div>
         </div>
       </mat-toolbar>
@@ -96,10 +98,6 @@ import { ResourceManagementComponent } from './components/resource-management.co
           </mat-card>
         </div>
       </main>
-
-      <footer class="app-footer">
-        <p>© 2024 Meeting Planner Pro • Управляйте встречами эффективно</p>
-      </footer>
     </div>
   `,
   styles: [`
@@ -218,20 +216,6 @@ import { ResourceManagementComponent } from './components/resource-management.co
       margin-top: 2px;
     }
 
-    .app-footer {
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 16px 24px;
-      text-align: center;
-      font-size: 14px;
-      margin-top: auto;
-    }
-
-    .app-footer p {
-      margin: 0;
-      opacity: 0.8;
-    }
-
     @media (max-width: 768px) {
       .main-content {
         padding: 16px;
@@ -254,10 +238,15 @@ import { ResourceManagementComponent } from './components/resource-management.co
   `]
 })
 export class App {
+  constructor(
+    private bookingService: BookingService,
+    private resourceService: ResourceService
+  ) {}
+
   getStats() {
     return {
-      totalBookings: 0,
-      totalResources: 4
+      totalBookings: this.bookingService.getBookings().length,
+      totalResources: this.resourceService.getResources().length
     };
   }
 }
