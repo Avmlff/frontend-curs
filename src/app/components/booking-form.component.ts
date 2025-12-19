@@ -1,102 +1,128 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
+import { Observable, of } from 'rxjs';
+import { delay, map } from 'rxjs/operators';
+
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar } from '@angular/material/snack-bar';
+
 import { BookingService } from '../services/booking.service';
 import { ResourceService } from '../services/resource.service';
-import { Resource } from '../models/resource.model';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 
 @Component({
-  standalone: true,
   selector: 'app-booking-form',
+  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
     MatFormFieldModule,
-    MatSelectModule,
     MatInputModule,
-    MatButtonModule,
-    MatDatepickerModule,
-    MatNativeDateModule
+    MatSelectModule,
+    MatButtonModule
   ],
   template: `
-    <h3>Новая встреча / бронирование ресурса</h3>
-    <form [formGroup]="form" (ngSubmit)="submit()">
-      <mat-form-field appearance="fill" style="width:100%; margin-bottom:8px;">
-        <mat-label>Ресурс</mat-label>
-        <mat-select formControlName="resourceId" required>
-          <mat-option *ngFor="let r of resources" [value]="r.id">{{ r.name }}</mat-option>
-        </mat-select>
-      </mat-form-field>
+    <div style="padding: 20px;">
+      <h2>Новое бронирование</h2>
 
-      <mat-form-field appearance="fill" style="width:100%; margin-bottom:8px;">
-        <mat-label>Дата и время начала</mat-label>
-        <input matInput [matDatepicker]="startPicker" formControlName="start" required>
-        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-        <mat-datepicker #startPicker></mat-datepicker>
-      </mat-form-field>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+          <mat-label>Ресурс</mat-label>
+          <mat-select formControlName="resourceId">
+            <mat-option *ngFor="let r of resources" [value]="r.id">{{ r.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
 
-      <mat-form-field appearance="fill" style="width:100%; margin-bottom:8px;">
-        <mat-label>Дата и время окончания</mat-label>
-        <input matInput [matDatepicker]="endPicker" formControlName="end" required>
-        <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-        <mat-datepicker #endPicker></mat-datepicker>
-      </mat-form-field>
+        <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+          <mat-label>Начало</mat-label>
+          <input matInput type="datetime-local" formControlName="start">
+        </mat-form-field>
 
-      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
-        Забронировать
-      </button>
-    </form>
+        <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+          <mat-label>Окончание</mat-label>
+          <input matInput type="datetime-local" formControlName="end">
+        </mat-form-field>
 
-    <div *ngIf="message" style="margin-top:8px; color:red;">
-      {{ message }}
+        <mat-form-field appearance="fill" style="width: 100%; margin-bottom: 16px;">
+          <mat-label>Описание</mat-label>
+          <input matInput formControlName="title">
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+          Забронировать
+        </button>
+      </form>
     </div>
   `
 })
 export class BookingFormComponent implements OnInit {
-  form!: FormGroup;
-  resources: Resource[] = [];
-  message = '';
+  form: FormGroup;
+  resources: any[] = [];
 
   constructor(
     private fb: FormBuilder,
     private bookingService: BookingService,
-    private resourceService: ResourceService
-  ) {}
-
-  ngOnInit(): void {
-    this.resources = this.resourceService.getResources();
-
+    private resourceService: ResourceService,
+    private snackBar: MatSnackBar
+  ) {
     this.form = this.fb.group({
-      resourceId: [null, Validators.required],
-      start: [null, Validators.required],
-      end: [null, Validators.required],
+      resourceId: ['', Validators.required],
+      start: ['', Validators.required],
+      end: ['', Validators.required],
+      title: ['']
+    }, {
+      asyncValidators: this.availabilityValidator.bind(this),
+      validators: this.timeValidator
     });
   }
 
-  submit() {
-    const { resourceId, start, end } = this.form.value;
+  ngOnInit() {
+    this.resources = this.resourceService.getResources();
+  }
 
-    if (!resourceId || !start || !end) return;
+  availabilityValidator(control: AbstractControl): Observable<{ [key: string]: any } | null> {
+    const resourceId = control.get('resourceId')?.value;
+    const start = control.get('start')?.value;
+    const end = control.get('end')?.value;
 
-    this.bookingService.checkAvailability(+resourceId, new Date(start), new Date(end))
-      .subscribe(available => {
-        if (available) {
-          this.bookingService.addBooking({
-            resourceId: +resourceId,
-            start: new Date(start),
-            end: new Date(end)
-          });
-          this.message = 'Бронирование успешно!';
-          this.form.reset();
-        } else {
-          this.message = 'Ресурс занят в выбранное время!';
-        }
+    if (!resourceId || !start || !end) {
+      return of(null);
+    }
+
+    return this.bookingService.checkAvailability(
+      resourceId,
+      new Date(start),
+      new Date(end)
+    ).pipe(
+      map(available => available ? null : { resourceBusy: true })
+    );
+  }
+
+  timeValidator(group: AbstractControl): { [key: string]: any } | null {
+    const start = group.get('start')?.value;
+    const end = group.get('end')?.value;
+
+    if (start && end && new Date(end) <= new Date(start)) {
+      return { timeInvalid: true };
+    }
+    return null;
+  }
+
+  onSubmit() {
+    if (this.form.valid) {
+      const value = this.form.value;
+      this.bookingService.addBooking({
+        resourceId: value.resourceId,
+        start: new Date(value.start),
+        end: new Date(value.end),
+        title: value.title || 'Без названия'
       });
+
+      this.snackBar.open('Бронирование создано!', 'OK', { duration: 3000 });
+      this.form.reset();
+    }
   }
 }
